@@ -1,8 +1,8 @@
-{
-  "build": {
-    "builder": "nixpacks",
-    "nixpacksConfig": {
-      "phpExtensions": ["gd", "pdo_mysql"]
-    }
-  }
-}
+{ 
+  "build": { 
+    "builder": "nixpacks", 
+    "nixpacksConfig": { 
+      "phpExtensions": ["gd", "pdo_mysql"] 
+    } 
+  } 
+} 
