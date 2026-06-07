@@ -2,15 +2,8 @@ FROM php:8.2-apache
 
 # Installer GD et les dépendances système
 RUN apt-get update && apt-get install -y \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    libzip-dev \
-    zip \
-    unzip \
-    git \
-    curl \
-    libpq-dev \
+    libpng-dev libjpeg-dev libfreetype6-dev libzip-dev \
+    zip unzip git curl libpq-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install gd pdo pdo_pgsql pdo_mysql zip
 
@@ -23,6 +16,9 @@ COPY . .
 # Installer les dépendances
 RUN composer install --no-dev --optimize-autoloader --ignore-platform-req=ext-gd
 
+# FORCER LA CRÉATION DE LA CLÉ
+RUN php artisan key:generate
+
 # Permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
@@ -30,9 +26,5 @@ RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 # Configuration Apache
 RUN a2enmod rewrite
 RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf
-
-# Forcer l'affichage des erreurs
-RUN echo "display_errors = On" >> /usr/local/etc/php/conf.d/custom.ini
-RUN echo "error_reporting = E_ALL" >> /usr/local/etc/php/conf.d/custom.ini
 
 EXPOSE 80
