@@ -1,35 +1,35 @@
-<?php
+FROM php:8.2-apache
 
-use Illuminate\Support\Facades\Route;
+# Désactiver mpm_event et activer mpm_prefork
+RUN a2dismod mpm_event && a2enmod mpm_prefork
 
-Route::get('/', function () {
-    return view('welcome');
-});
+# Installer GD et les dépendances système
+RUN apt-get update && apt-get install -y \
+    libpng-dev libjpeg-dev libfreetype6-dev libzip-dev \
+    zip unzip git curl libpq-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install gd pdo pdo_pgsql pdo_mysql zip
 
-// Add this dummy route to prevent the error
-Route::match(['get', 'post'], '/login', function () {
-    return response()->json(['message' => 'Please use /api/v1/auth/login for API authentication'], 401);
-})->name('login');
+# Installer Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-// Add a fallback for any web route
-Route::fallback(function () {
-    return response()->json(['message' => 'Route not found. Please check the API documentation.'], 404);
-});
+WORKDIR /var/www/html
+COPY . .
 
-// ==============================================
-// TES ROUTES AJOUTÉES
-// ==============================================
+# Installer les dépendances
+RUN composer install --no-dev --optimize-autoloader --ignore-platform-req=ext-gd
 
-// Route de test pour la racine (alternative à welcome)
-Route::get('/hello', function () {
-    return 'Hello from Laravel on Render!';
-});
+# Créer le fichier .env avec la clé APP_KEY
+RUN echo "APP_KEY=base64:dTxnUzGkZgJZpJxYxVpLyQnLkZtGqWkRcFvHmNpLmE=" > .env
+RUN echo "APP_ENV=production" >> .env
+RUN echo "APP_DEBUG=false" >> .env
 
-// Route API de test
-Route::get('/api/test', function () {
-    return response()->json([
-        'message' => 'API is working!',
-        'status' => 'success',
-        'timestamp' => now()
-    ]);
-});
+# Permissions
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+
+# Configuration Apache
+RUN a2enmod rewrite
+RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf
+
+EXPOSE 80
