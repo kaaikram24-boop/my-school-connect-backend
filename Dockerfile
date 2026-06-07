@@ -30,17 +30,18 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Définir le répertoire de travail
 WORKDIR /var/www/html
 
-# Copier les fichiers composer d'abord (pour optimiser le cache)
-COPY composer.json composer.lock ./
-
-# Installer les dépendances PHP avec ignore-platform-req pour éviter les erreurs d'extension
-RUN composer install --optimize-autoloader --no-dev --ignore-platform-req=ext-gd --ignore-platform-req=ext-zip
-
-# Copier le reste du code
+# Copier tous les fichiers
 COPY . .
 
-# Copier .env.example en .env si .env n'existe pas
-RUN cp .env.example .env 2>/dev/null || true
+# Créer le fichier .env temporairement
+RUN if [ ! -f .env ]; then cp .env.example .env 2>/dev/null || echo "APP_KEY=" > .env; fi
+
+# Installer les dépendances PHP en ignorant les scripts
+RUN composer install --optimize-autoloader --no-dev --no-scripts --ignore-platform-req=ext-gd --ignore-platform-req=ext-zip
+
+# Exécuter les scripts manuellement
+RUN php artisan key:generate || true
+RUN php artisan package:discover || true
 
 # Configurer les permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
