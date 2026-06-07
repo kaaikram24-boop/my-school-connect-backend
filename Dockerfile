@@ -36,14 +36,22 @@ COPY . .
 # Créer le fichier .env temporairement
 RUN if [ ! -f .env ]; then cp .env.example .env 2>/dev/null || echo "APP_KEY=" > .env; fi
 
-# Installer les dépendances PHP en ignorant les scripts
+# Installer les dépendances PHP
 RUN composer install --optimize-autoloader --no-dev --no-scripts --ignore-platform-req=ext-gd --ignore-platform-req=ext-zip
 
 # Exécuter les scripts manuellement
 RUN php artisan key:generate || true
-RUN php artisan package:discover || true
+RUN php artisan config:clear || true
+RUN php artisan cache:clear || true
+RUN php artisan view:clear || true
+RUN php artisan route:clear || true
+
+# Configurer Apache pour utiliser le dossier public/
+RUN a2enmod rewrite
+RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf
 
 # Configurer les permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public
+RUN chmod -R 755 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public
 
 EXPOSE 80
