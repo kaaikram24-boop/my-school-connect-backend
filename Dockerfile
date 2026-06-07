@@ -27,13 +27,12 @@ RUN apt-get update && apt-get install -y \
 # Installer Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Définir le répertoire de travail
 WORKDIR /var/www/html
 
-# Copier les fichiers composer d'abord
+# Copier les fichiers composer
 COPY composer.json composer.lock ./
 
-# Installer les dépendances (sans pail)
+# Installer les dépendances
 RUN composer install --no-dev --no-scripts --ignore-platform-req=ext-gd --ignore-platform-req=ext-zip
 
 # Copier le reste du code
@@ -42,15 +41,18 @@ COPY . .
 # Créer le fichier .env
 RUN cp .env.example .env 2>/dev/null || echo "APP_KEY=" > .env
 
-# Configurer Apache pour utiliser le dossier public/
+# Configurer les permissions des logs
+RUN mkdir -p /var/www/html/storage/logs
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+RUN chmod -R 755 /var/www/html/storage
+RUN chmod -R 777 /var/www/html/storage/logs
+
+# Configurer Apache
 RUN a2enmod rewrite
 RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf
 
-# Configurer les permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public
-RUN chmod -R 755 /var/www/html/storage /var/www/html/bootstrap/cache
-
-# Copier la configuration PHP pour afficher les erreurs
-COPY php.ini-production /usr/local/etc/php/conf.d/custom.ini
+# PHP error logging
+RUN echo "display_errors = On" >> /usr/local/etc/php/conf.d/custom.ini
+RUN echo "error_log = /var/www/html/storage/logs/php-error.log" >> /usr/local/etc/php/conf.d/custom.ini
 
 EXPOSE 80
