@@ -16,7 +16,10 @@ COPY . .
 # Installer les dépendances
 RUN composer install --no-dev --optimize-autoloader --ignore-platform-req=ext-gd
 
-# FORCER LA CRÉATION DE LA CLÉ
+# Créer le fichier .env avant de générer la clé
+RUN cp .env.example .env 2>/dev/null || echo "APP_KEY=" > .env
+
+# Générer la clé APP_KEY
 RUN php artisan key:generate
 
 # Permissions
