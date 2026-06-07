@@ -30,21 +30,17 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Définir le répertoire de travail
 WORKDIR /var/www/html
 
-# Copier tous les fichiers
+# Copier les fichiers composer d'abord (pour optimiser le cache)
+COPY composer.json composer.lock ./
+
+# Installer les dépendances (version simplifiée)
+RUN composer install --no-dev --ignore-platform-req=ext-gd --ignore-platform-req=ext-zip
+
+# Copier le reste du code
 COPY . .
 
-# Créer le fichier .env temporairement
-RUN if [ ! -f .env ]; then cp .env.example .env 2>/dev/null || echo "APP_KEY=" > .env; fi
-
-# Installer les dépendances PHP
-RUN composer install --optimize-autoloader --no-dev --no-scripts --ignore-platform-req=ext-gd --ignore-platform-req=ext-zip
-
-# Exécuter les scripts manuellement
-RUN php artisan key:generate || true
-RUN php artisan config:clear || true
-RUN php artisan cache:clear || true
-RUN php artisan view:clear || true
-RUN php artisan route:clear || true
+# Créer le fichier .env
+RUN cp .env.example .env 2>/dev/null || echo "APP_KEY=" > .env
 
 # Configurer Apache pour utiliser le dossier public/
 RUN a2enmod rewrite
