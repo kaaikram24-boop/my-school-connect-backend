@@ -16,11 +16,10 @@ COPY . .
 # Installer les dépendances
 RUN composer install --no-dev --optimize-autoloader --ignore-platform-req=ext-gd
 
-# Créer le fichier .env avant de générer la clé
-RUN cp .env.example .env 2>/dev/null || echo "APP_KEY=" > .env
-
-# Générer la clé APP_KEY
-RUN php artisan key:generate
+# Créer le fichier .env avec la clé déjà définie
+RUN echo "APP_KEY=base64:dTxnUzGkZgJZpJxYxVpLyQnLkZtGqWkRcFvHmNpLmE=" > .env
+RUN echo "APP_ENV=production" >> .env
+RUN echo "APP_DEBUG=false" >> .env
 
 # Permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
