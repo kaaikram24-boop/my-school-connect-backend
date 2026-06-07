@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     libpq-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) gd pdo pdo_pgsql pdo_mysql zip
+    && docker-php-ext-install gd pdo pdo_pgsql pdo_mysql zip
 
 # Installer Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
