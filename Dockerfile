@@ -1,18 +1,21 @@
 FROM php:8.2-apache
 
+# Installer les extensions PHP nécessaires
 RUN apt-get update && apt-get install -y \
-    libpng-dev libjpeg-dev libfreetype6-dev zip unzip git curl
+    libpng-dev libjpeg-dev libfreetype6-dev zip unzip git curl \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install gd pdo pdo_mysql pdo_pgsql
 
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg
-RUN docker-php-ext-install gd pdo_mysql mbstring zip
-
+# Installer Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-WORKDIR /var/www/html
-COPY . .
+# Copier le code
+COPY . /var/www/html/
 
+# Installer les dépendances PHP
 RUN composer install --optimize-autoloader --no-dev
 
-RUN cp .env.example .env 2>/dev/null || true
+# Configurer les permissions
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
 EXPOSE 80
